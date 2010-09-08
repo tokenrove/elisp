@@ -3,6 +3,9 @@
 ;;; TODO: better completion of file argument
 ;;; TODO: maintain sorted order of includes per style(9)
 
+(require 'cl)
+(require 'ffap)
+
 (defun cc-mode-hop-to-includes ()
   "Move point to the first block of #include lines, or where they
 should be if there are none."
@@ -17,18 +20,18 @@ should be if there are none."
 ;; XXX note I only go through one depth of directory walking because
 ;; anything much more than that seems pretty unreasonable to me.
 ;; But feel free to hack it anyway if it floats your boat.
-(flet ((cs (path) (mapcan (lambda (d) (directory-files d nil "^[^.]")) path)))
-  (defun append-include-line (file &optional localp)
-    "Append a #include <file> line to the top of the file without
+(defun append-include-line-completions (path) (mapcan (lambda (d) (directory-files d nil "^[^.]")) path))
+(defun append-include-line (file &optional localp)
+  "Append a #include <file> line to the top of the file without
 moving around.  Uses ffap-c-path to figure out where to look for
 includes.  If localp is set, it looks in default-directory and
 uses quotes instead of angle brackets."
-    (interactive
-     (list (completing-read "Include: " (cs (if current-prefix-arg (list default-directory) ffap-c-path)))
-	   current-prefix-arg))
-    (save-excursion
-      (cc-mode-hop-to-includes)
-      (insert "#include " (if localp "\"" "<") file (if localp "\"" ">") "\n"))))
+  (interactive
+   (list (completing-read "Include: " (append-include-line-completions (if current-prefix-arg (list default-directory) ffap-c-path)))
+	 current-prefix-arg))
+  (save-excursion
+    (cc-mode-hop-to-includes)
+    (insert "#include " (if localp "\"" "<") file (if localp "\"" ">") "\n")))
 
 (add-hook 'c-mode-hook '(lambda () (define-key c-mode-map "\C-cI" 'append-include-line)))
 
